@@ -94,15 +94,15 @@ def curve_to_polygon_vertices(center_points, line_width):
     return vertices
 
 
-def create_nurbs_prism(control_points, line_width, z_center, z_height, material):
+def create_nurbs_prism(control_points, line_width, height, z_center, material):
     """
     创建 NURBS 曲线形状的棱柱（用于 MEEP）
     
     Args:
         control_points: 控制点数组
         line_width: 线宽 (um)
+        height: z 方向高度 (um)
         z_center: z 方向中心位置 (um)
-        z_height: z 方向高度 (um)
         material: MEEP 材料
     
     Returns:
@@ -123,7 +123,7 @@ def create_nurbs_prism(control_points, line_width, z_center, z_height, material)
     # 创建棱柱
     prism = mp.Prism(
         vertices=meep_vertices,
-        height=z_height,
+        height=height,
         center=mp.Vector3(0, 0, z_center),
         material=material
     )
