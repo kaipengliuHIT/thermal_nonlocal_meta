@@ -27,12 +27,15 @@ def run_with_visualization(resolution=10, sim_time=200, output_dir="figures"):
     if mp.am_master():
         os.makedirs(output_dir, exist_ok=True)
     
-    # 定义控制点和线宽
+    # 定义控制点和线宽 - 与 Lumerical 脚本一致
     d = np.array([0.2, 0.3, 0.5, 0.7, 1.0, 1.0])
     l = np.array([5.0, 4.8, 4.6, 3.5, 3.0, 3.0])
+    x_centers = [-5.25, -3.15, -1.05, 1.05, 3.15, 5.25]  # 每条曲线的中心 x 坐标
     
+    # 每条曲线有3个控制点: [下端点, 中心点, 上端点]
+    # 下端点和上端点的 x 坐标有偏移 d[i]
     control_points = [
-        [[-5.25 + d[i], -l[i]], [-5.25 + 2.1*i, 0], [-5.25 + d[i], l[i]]]
+        [[x_centers[i] + d[i], -l[i]], [x_centers[i], 0], [x_centers[i] + d[i], l[i]]]
         for i in range(6)
     ]
     line_widths = [1.1, 1.0, 0.8, 0.7, 0.6, 0.5]

@@ -459,12 +459,14 @@ def generate_all_visualizations(control_points, line_widths, output_dir="."):
 if __name__ == "__main__":
     import numpy as np
     
-    # 测试控制点
+    # 控制点定义 - 与 Lumerical 脚本一致
     d = np.array([0.2, 0.3, 0.5, 0.7, 1.0, 1.0])
     l = np.array([5.0, 4.8, 4.6, 3.5, 3.0, 3.0])
+    x_centers = [-5.25, -3.15, -1.05, 1.05, 3.15, 5.25]
     
+    # 每条曲线: [下端点(x+d, -l), 中心点(x, 0), 上端点(x+d, l)]
     control_points = [
-        [[-5.25 + d[i], -l[i]], [-5.25 + 2.1*i, 0], [-5.25 + d[i], l[i]]]
+        [[x_centers[i] + d[i], -l[i]], [x_centers[i], 0], [x_centers[i] + d[i], l[i]]]
         for i in range(6)
     ]
     line_widths = [1.1, 1.0, 0.8, 0.7, 0.6, 0.5]
