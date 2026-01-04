@@ -25,9 +25,11 @@ from meep import mpb
 import argparse
 import os
 
-from materials import (
-    create_zns_material, 
-    create_ge_material,
+from materials_realistic import (
+    create_zns_material_from_data,
+    create_ge_material_palik,
+    create_au_material_stable,
+    create_ag_material_stable,
 )
 from nurbs_geometry import create_single_period_nurbs
 
@@ -84,12 +86,11 @@ class ThermalMetaSim:
         self.df = 1/self.wavelength_min - 1/self.wavelength_max
         self.nfreq = 201  # 频率点数
         
-        # 材料
-        self.ge_material = create_ge_material()
-        self.zns_material = create_zns_material()
-        # 在远红外波段，金属近似为完美电导体
-        self.au_material = mp.perfect_electric_conductor
-        self.ag_material = mp.perfect_electric_conductor
+        # 材料 - 使用基于 Palik 数据库的真实材料参数
+        self.ge_material = create_ge_material_palik()
+        self.zns_material = create_zns_material_from_data()
+        self.au_material = create_au_material_stable(resolution)
+        self.ag_material = create_ag_material_stable(resolution)
         
         # 仿真对象
         self.sim = None
