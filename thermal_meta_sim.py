@@ -27,10 +27,7 @@ import os
 
 from materials import (
     create_zns_material, 
-    create_ge_material, 
-    create_au_material, 
-    create_ag_material,
-    create_simple_metal
+    create_ge_material,
 )
 from nurbs_geometry import create_single_period_nurbs
 
@@ -90,8 +87,9 @@ class ThermalMetaSim:
         # 材料
         self.ge_material = create_ge_material()
         self.zns_material = create_zns_material()
-        self.au_material = create_au_material(self.fcen)
-        self.ag_material = create_ag_material(self.fcen)
+        # 在远红外波段，金属近似为完美电导体
+        self.au_material = mp.perfect_electric_conductor
+        self.ag_material = mp.perfect_electric_conductor
         
         # 仿真对象
         self.sim = None

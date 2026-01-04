@@ -74,82 +74,57 @@ def create_ge_material():
 
 def create_au_material(fcen):
     """
-    创建 Au (金) 材料 - Drude 模型
-    参数来自 Palik 数据库的拟合
+    创建 Au (金) 材料 - 简化的 Drude 模型
+    适用于远红外波段 (8-15 um)
     
     Args:
         fcen: 中心频率 (MEEP 单位，c=1)
     """
-    # Au Drude 模型参数 (SI 单位转换到 MEEP 单位)
-    # omega_p = 9.03 eV = 1.37e16 rad/s
-    # gamma = 0.053 eV = 8.05e13 rad/s
+    # 在远红外波段，金属行为接近完美导体
+    # 使用简化的 Drude 模型，参数已针对红外波段优化
     
-    um_scale = 1.0  # 使用微米为单位
+    # Drude 参数 (针对远红外波段稳定性优化)
+    # omega_p = 9.03 eV ≈ 2.18 um^-1
+    # gamma = 0.053 eV ≈ 0.0128 um^-1
     
-    # Drude 参数 (来自文献)
-    metal_range = mp.FreqRange(min=1/20, max=1/1)
+    Au_plasma_frq = 2.18  # plasma frequency in um^-1
+    Au_gamma = 0.0128    # damping in um^-1
     
-    Au_plasma_frq = 9.03 * 0.2418  # eV to meep frequency (um^-1)
-    Au_f0 = 0.760
-    Au_frq0 = 1e-10  # 避免除以零
-    Au_gam0 = 0.053 * 0.2418
-    Au_sig0 = Au_f0 * Au_plasma_frq**2 / Au_frq0**2
-    
-    Au_f1 = 0.024
-    Au_frq1 = 0.415 * 0.2418
-    Au_gam1 = 0.241 * 0.2418
-    Au_sig1 = Au_f1 * Au_plasma_frq**2 / Au_frq1**2
-    
-    Au_f2 = 0.010
-    Au_frq2 = 0.830 * 0.2418
-    Au_gam2 = 0.345 * 0.2418
-    Au_sig2 = Au_f2 * Au_plasma_frq**2 / Au_frq2**2
+    # Drude 极化率: sigma = omega_p^2
+    Au_sigma = Au_plasma_frq ** 2
     
     Au_susc = [
-        mp.DrudeSusceptibility(frequency=Au_frq0, gamma=Au_gam0, sigma=Au_sig0),
-        mp.LorentzianSusceptibility(frequency=Au_frq1, gamma=Au_gam1, sigma=Au_sig1),
-        mp.LorentzianSusceptibility(frequency=Au_frq2, gamma=Au_gam2, sigma=Au_sig2),
+        mp.DrudeSusceptibility(frequency=1.0, gamma=Au_gamma, sigma=Au_sigma),
     ]
     
-    return mp.Medium(epsilon=1.0, E_susceptibilities=Au_susc, valid_freq_range=metal_range)
+    return mp.Medium(epsilon=1.0, E_susceptibilities=Au_susc)
 
 
 def create_ag_material(fcen):
     """
-    创建 Ag (银) 材料 - Drude-Lorentz 模型
-    参数来自 Johnson & Christy
+    创建 Ag (银) 材料 - 简化的 Drude 模型
+    适用于远红外波段
     
     Args:
         fcen: 中心频率 (MEEP 单位)
     """
-    um_scale = 1.0
+    # 在远红外波段，银的行为接近完美导体
+    # 使用简化的 Drude 模型
     
-    metal_range = mp.FreqRange(min=1/20, max=1/1)
+    # Drude 参数 (针对远红外波段优化)
+    # omega_p = 9.01 eV ≈ 2.18 um^-1
+    # gamma = 0.048 eV ≈ 0.0116 um^-1
     
-    # Ag Drude-Lorentz 参数
-    Ag_plasma_frq = 9.01 * 0.2418  # eV to meep frequency
-    Ag_f0 = 0.845
-    Ag_frq0 = 1e-10
-    Ag_gam0 = 0.048 * 0.2418
-    Ag_sig0 = Ag_f0 * Ag_plasma_frq**2 / Ag_frq0**2
+    Ag_plasma_frq = 2.18  # plasma frequency in um^-1
+    Ag_gamma = 0.0116    # damping in um^-1
     
-    Ag_f1 = 0.065
-    Ag_frq1 = 0.816 * 0.2418
-    Ag_gam1 = 3.886 * 0.2418
-    Ag_sig1 = Ag_f1 * Ag_plasma_frq**2 / Ag_frq1**2
-    
-    Ag_f2 = 0.124
-    Ag_frq2 = 4.481 * 0.2418
-    Ag_gam2 = 0.452 * 0.2418
-    Ag_sig2 = Ag_f2 * Ag_plasma_frq**2 / Ag_frq2**2
+    Ag_sigma = Ag_plasma_frq ** 2
     
     Ag_susc = [
-        mp.DrudeSusceptibility(frequency=Ag_frq0, gamma=Ag_gam0, sigma=Ag_sig0),
-        mp.LorentzianSusceptibility(frequency=Ag_frq1, gamma=Ag_gam1, sigma=Ag_sig1),
-        mp.LorentzianSusceptibility(frequency=Ag_frq2, gamma=Ag_gam2, sigma=Ag_sig2),
+        mp.DrudeSusceptibility(frequency=1.0, gamma=Ag_gamma, sigma=Ag_sigma),
     ]
     
-    return mp.Medium(epsilon=1.0, E_susceptibilities=Ag_susc, valid_freq_range=metal_range)
+    return mp.Medium(epsilon=1.0, E_susceptibilities=Ag_susc)
 
 
 def create_simple_metal(conductivity=1e7):
