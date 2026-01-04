@@ -82,8 +82,14 @@ def create_multi_period_geometry(control_points, line_widths, num_periods=5,
     return geometry, total_width
 
 
-def run_single_angle(angle_deg, resolution, num_periods, sim_time, output_dir):
-    """运行单个角度的仿真"""
+def run_single_angle(angle_deg, resolution, num_periods, sim_time, output_dir, 
+                     reference_mode=False):
+    """
+    运行单个角度的仿真
+    
+    Args:
+        reference_mode: 如果为True，运行无结构的参考仿真用于归一化
+    """
     
     # 控制点定义
     d = np.array([0.2, 0.3, 0.5, 0.7, 1.0, 1.0])
@@ -131,12 +137,38 @@ def run_single_angle(angle_deg, resolution, num_periods, sim_time, output_dir):
     cell_size = mp.Vector3(sx, sy, sz)
     
     # 几何结构
-    geometry, _ = create_multi_period_geometry(
-        control_points, line_widths,
-        num_periods=num_periods,
-        period_x=period_x,
-        materials=materials
-    )
+    if reference_mode:
+        # 参考仿真：只有基底层，没有纳米线
+        geometry = [
+            mp.Block(
+                center=mp.Vector3(0, 0, -0.05),
+                size=mp.Vector3(total_width, mp.inf, 0.1),
+                material=materials['ge']
+            ),
+            mp.Block(
+                center=mp.Vector3(0, 0, -0.4),
+                size=mp.Vector3(total_width, mp.inf, 0.6),
+                material=materials['zns']
+            ),
+            mp.Block(
+                center=mp.Vector3(0, 0, -0.75),
+                size=mp.Vector3(total_width, mp.inf, 0.1),
+                material=materials['ge']
+            ),
+            mp.Block(
+                center=mp.Vector3(0, 0, -0.825),
+                size=mp.Vector3(total_width, mp.inf, 0.05),
+                material=materials['au']
+            ),
+        ]
+    else:
+        # 完整结构：包含纳米线
+        geometry, _ = create_multi_period_geometry(
+            control_points, line_widths,
+            num_periods=num_periods,
+            period_x=period_x,
+            materials=materials
+        )
     
     # PML 边界
     pml_layers = [
@@ -194,7 +226,8 @@ def run_single_angle(angle_deg, resolution, num_periods, sim_time, output_dir):
     if mp.am_master():
         wavelengths = 1.0 / np.array(freqs)
         os.makedirs(output_dir, exist_ok=True)
-        output_file = os.path.join(output_dir, f"angle_{angle_deg:05.1f}.csv")
+        prefix = "ref_" if reference_mode else "angle_"
+        output_file = os.path.join(output_dir, f"{prefix}{angle_deg:05.1f}.csv")
         np.savetxt(output_file, 
                   np.column_stack([wavelengths, flux]),
                   delimiter=',',
@@ -213,12 +246,14 @@ def main():
     parser.add_argument('--periods', type=int, default=5)
     parser.add_argument('--time', type=int, default=300)
     parser.add_argument('--output', type=str, default='sweep_results')
+    parser.add_argument('--reference', action='store_true',
+                        help='Run reference simulation without nanowires')
     
     args = parser.parse_args()
     
     run_single_angle(
         args.angle, args.resolution, args.periods, 
-        args.time, args.output
+        args.time, args.output, reference_mode=args.reference
     )
 
 

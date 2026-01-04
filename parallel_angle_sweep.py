@@ -22,10 +22,11 @@ import time
 
 def run_single_angle_job(args):
     """运行单个角度的仿真任务"""
-    angle, cores, resolution, periods, sim_time, output_dir = args
+    angle, cores, resolution, periods, sim_time, output_dir, reference = args
     
-    output_file = os.path.join(output_dir, f"angle_{angle:05.1f}.csv")
-    log_file = os.path.join(output_dir, f"angle_{angle:05.1f}.log")
+    prefix = "ref" if reference else "angle"
+    output_file = os.path.join(output_dir, f"{prefix}_{angle:05.1f}.csv")
+    log_file = os.path.join(output_dir, f"{prefix}_{angle:05.1f}.log")
     
     # 构建 MEEP 命令
     cmd = [
@@ -37,8 +38,11 @@ def run_single_angle_job(args):
         "--time", str(sim_time),
         "--output", output_dir
     ]
+    if reference:
+        cmd.append("--reference")
     
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting angle={angle}° with {cores} cores")
+    mode_str = "REF" if reference else "SIM"
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting {mode_str} angle={angle}° with {cores} cores")
     
     start_time = time.time()
     
@@ -53,11 +57,11 @@ def run_single_angle_job(args):
     elapsed = time.time() - start_time
     
     if result.returncode == 0:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✓ Completed angle={angle}° in {elapsed:.1f}s")
-        return (angle, True, elapsed)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✓ Completed {mode_str} angle={angle}° in {elapsed:.1f}s")
+        return (angle, True, elapsed, reference)
     else:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✗ Failed angle={angle}°")
-        return (angle, False, elapsed)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✗ Failed {mode_str} angle={angle}°")
+        return (angle, False, elapsed, reference)
 
 
 def generate_dispersion_plot(output_dir, angles):
@@ -115,15 +119,15 @@ def generate_dispersion_plot(output_dir, angles):
     ax1.set_title('Reflectance Dispersion', fontsize=16)
     ax1.tick_params(labelsize=12)
     
-    # 发射率色散图（类似能带图）
+    # 吸收率色散图（类似能带图）- 使用蓝色色带匹配 Lumerical 风格
     ax2 = axes[1]
-    im2 = ax2.pcolormesh(X, Y, emissivity, shading='gouraud', cmap='hot',
+    im2 = ax2.pcolormesh(X, Y, emissivity, shading='gouraud', cmap='Blues',
                          vmin=0, vmax=1)
     cbar2 = plt.colorbar(im2, ax=ax2)
-    cbar2.set_label('Emissivity (ε = 1 - R)', fontsize=12)
+    cbar2.set_label('Absorption (A = 1 - R)', fontsize=12)
     ax2.set_xlabel('Incident Angle (°)', fontsize=14)
     ax2.set_ylabel('Wavelength (μm)', fontsize=14)
-    ax2.set_title('Emissivity Dispersion (Band-like Structure)', fontsize=16)
+    ax2.set_title('Absorption Dispersion', fontsize=16)
     ax2.tick_params(labelsize=12)
     
     plt.tight_layout()
@@ -201,12 +205,14 @@ This will run 8 jobs in parallel (128/16=8), each using 16 MPI processes.
     # 创建输出目录
     os.makedirs(args.output, exist_ok=True)
     
-    # 准备任务参数
-    job_args = [
-        (angle, args.cores_per_job, args.resolution, args.periods, 
-         args.time, args.output)
-        for angle in angles
-    ]
+    # 准备任务参数 - 同时运行参考仿真和实际仿真
+    job_args = []
+    for angle in angles:
+        # 实际仿真（包含纳米线）
+        job_args.append(
+            (angle, args.cores_per_job, args.resolution, args.periods, 
+             args.time, args.output, False)
+        )
     
     # 使用进程池并行执行
     start_time = time.time()
@@ -223,7 +229,7 @@ This will run 8 jobs in parallel (128/16=8), each using 16 MPI processes.
                 results.append(result)
             except Exception as e:
                 print(f"Error for angle {angle}°: {e}")
-                results.append((angle, False, 0))
+                results.append((angle, False, 0, False))
     
     total_time = time.time() - start_time
     
@@ -232,12 +238,12 @@ This will run 8 jobs in parallel (128/16=8), each using 16 MPI processes.
     print("SUMMARY")
     print("=" * 70)
     
-    successful = sum(1 for _, success, _ in results if success)
+    successful = sum(1 for r in results if len(r) >= 2 and r[1])
     print(f"Completed: {successful}/{len(angles)} angles")
     print(f"Total time: {total_time:.1f}s ({total_time/60:.1f} min)")
     
     if successful > 0:
-        avg_time = sum(t for _, s, t in results if s) / successful
+        avg_time = sum(r[2] for r in results if r[1]) / successful
         print(f"Average time per angle: {avg_time:.1f}s")
         print(f"Speedup from parallelization: {len(angles) * avg_time / total_time:.1f}x")
     
