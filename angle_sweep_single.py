@@ -13,8 +13,8 @@ import os
 from materials_realistic import (
     create_zns_material_from_data,
     create_ge_material_palik,
-    create_au_material_stable,
-    create_ag_material_stable,
+    create_au_material_palik,
+    create_ag_material_palik,
 )
 from nurbs_geometry import create_nurbs_prism
 
@@ -117,12 +117,12 @@ def run_single_angle(angle_deg, resolution, num_periods, sim_time, output_dir,
     df = 1/wavelength_min - 1/wavelength_max
     nfreq = 101
     
-    # 材料
+    # 材料 - 使用完整的 Palik/Rakic 数据库
     materials = {
         'ge': create_ge_material_palik(),
         'zns': create_zns_material_from_data(),
-        'au': create_au_material_stable(resolution),
-        'ag': create_ag_material_stable(resolution),
+        'au': create_au_material_palik(),  # 完整 Drude-Lorentz 模型
+        'ag': create_ag_material_palik(),  # 完整 Drude-Lorentz 模型
     }
     
     angle_rad = np.radians(angle_deg)
